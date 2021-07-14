@@ -494,7 +494,35 @@ p4L =  ggplot(data=p4fit, aes(x=Week, y=fit, group=interaction(Size, High), colo
   geom_linerange(data=tanksummary, aes(x=Week, y=Cercariae, ymin=Cercariae - Cercariae_SE, ymax=Cercariae + Cercariae_SE,
                                        colour=interaction(Size, High)), inherit.aes = F)
 
-Fig3B = plot_grid(spacer, spacer, spacer, spacer, spacer,
+Fig3.v2 = plot_grid(spacer, spacer, spacer, spacer,
+                    spacer, p3H, p3L, spacer,
+                    spacer, p4H, p4L,spacer,
+                    spacer, spacer, spacer, spacer,
+                    align="hv", ncol=4, nrow=4, rel_widths=c(0.1, 1, 1, 0.05), rel_heights=c(0.15, 1, 1, 0.1), axis="rltb", scale=1) +
+  # Column labels
+  draw_label(expression(underline("High nutrient")), x=0.33, y=0.99) +
+  draw_label(expression(underline("Low nutrient")), x=0.78, y=0.99) +
+  # y-axis labels
+  draw_label("Infected host density ± SE", x=0.02, y=0.75, angle=90, size=14) +
+  draw_label("Total cercarial production ± SE", x=0.02, y=0.35, angle=90, size=14) +
+  # x-axis labels
+  draw_label("Weeks post snail and schistosome introduction", x = 0.55, y = 0.01, vjust=0 ,size=14) +
+  # panel labels
+  draw_label("A", x = 0.13, y = 0.92) +  draw_label("B", x = 0.59, y = 0.92) +
+  draw_label("C", x = 0.13, y = 0.47) +  draw_label("D", x = 0.59, y = 0.47) +
+  # fit statistics
+  draw_label(expression(paste(R^2, " = 0.33")), x=0.9, y=0.94, size=12)+
+  draw_label(expression(paste(R^2, " = 0.71")), x=0.9, y=0.47, size=12)+
+  # legend
+  draw_label(expression(underline("Founder size")), x=0.42, y=0.95, size=11) +
+  draw_label("Small", x = 0.42, y=0.93, size=11, color = "blue") +
+  draw_label("Medium", x = 0.42, y=0.91, size=11, color = "black") +
+  draw_label("Large", x = 0.42, y=0.89, size=11, color = "red") 
+
+save_plot("Fig3_SufferComp_v2.png", Fig3.v2, ncol=4, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
+
+
+Fig4 = plot_grid(spacer, spacer, spacer, spacer, spacer,
                   spacer, p3, spacer, p4, spacer,
                   spacer, spacer, spacer, spacer, spacer,
                   spacer, p6, spacer, p7, spacer,
@@ -531,6 +559,6 @@ Fig3B = plot_grid(spacer, spacer, spacer, spacer, spacer,
   draw_label("High", x=0.86, y=0.84, size=11, colour="limegreen") +
   draw_label("Low", x=0.86, y=0.82, size=11) 
 
-save_plot("Fig3B_SufferComp.png", Fig3B, ncol=3, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
+save_plot("Fig4.png", Fig3B, ncol=3, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
 
 
