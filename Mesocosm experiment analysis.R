@@ -90,9 +90,9 @@ theme_update(plot.margin = unit(c(0, 0, 0, 0), "cm"), legend.position="None", ax
 
 ### Use GAMMs with autocorrelated error to analyze population level dynamics
 
-## 1 - What are the temporal dynamics of snails, snail biomass, and periphyton?
+## Figure 2 - What are the temporal dynamics of snails, snail biomass, and periphyton?
 
-# 1A, Snail density
+# 2A, B - Snail density
 m_aS = gamm(Snail_density ~ Size + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"), 
             family=quasipoisson, correlation=corCAR1(form=~Week|Tank), data=tanks)
 summary(m_aS$gam)
@@ -100,156 +100,89 @@ draw(derivatives(m_aS$gam, term = "Week", interval="simultaneous")) # Peaks occu
 fd_aS = derivatives(m_aS$gam, term = "s(Week):SizeSmall", interval="simultaneous", n=1400)
 fd_aS[,"sig_fd"] = ifelse(fd_aS[,"lower"]*fd_aS[,"upper"] > 0, 1, 0)
 fd_aS
-p1fit = plot_smooth(m_aS$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
+p2ABfit = plot_smooth(m_aS$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, se=1, shade=T, 
                     ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p1fit[,"High"] = as.factor(p1fit[,"High"])
+p2ABfit[,"High"] = as.factor(p2ABfit[,"High"])
 
-p1 =  ggplot(data=p1fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) +
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-  scale_fill_manual(values=c("black", "limegreen")) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Snail_density , group=interaction(Size, High), shape=Size)) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Snail_density , ymin=Snail_density - Snail_density_SE,
-                                  ymax=Snail_density + Snail_density_SE, colour=High), inherit.aes = F)
-
-
-
-# 1B, Snail biomass 
-m_aS2 = gamm(pmax(Biomass_density,1) ~ Size  + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"), 
-             family=Gamma(link="log"), correlation=corCAR1(form=~Week|Tank), niterPQL=100, method="REML", data=tanks)
-summary(m_aS2$gam)
-draw(derivatives(m_aS2$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative
-
-p2fit = plot_smooth(m_aS2$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
-                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p2fit[,"High"] = as.factor(p2fit[,"High"])
-
-
-p2 =  ggplot(data=p2fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) +
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-  scale_fill_manual(values=c("black", "limegreen")) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Biomass_density , group=interaction(Size, High), shape=Size)) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Biomass_density , ymin=Biomass_density - Biomass_density_SE,
-                                       ymax=Biomass_density + Biomass_density_SE, colour=High), inherit.aes = F)
-
-p2
-
-#2D - Periphyton
-m_peri = gamm(Peri_F ~  Size + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"),
-              family=Gamma(link="log"), correlation=corCAR1(form=~Week|Tank), data=tanks)
-summary(m_peri$gam)
-
-p5fit = plot_smooth(m_peri$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
-                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p5fit[,"High"] = as.factor(p5fit[,"High"])
-
-p5 =  ggplot(data=p5fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) +
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-  scale_fill_manual(values=c("black", "limegreen")) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Periphyton, group=interaction(Size, High), shape=Size)) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Periphyton, ymin=Periphyton - Periphyton_SE,
-                                       ymax=Periphyton + Periphyton_SE, colour=High), inherit.aes = F)
-
-spacer = ggplot(data=p1fit, aes(x=Week, y=fit)) +
-  geom_blank() + theme_void()
-
-Fig2 = plot_grid(spacer, spacer, spacer,
-                 spacer, p1, spacer,
-                 spacer, p2, spacer,
-                 spacer, p5, spacer,
-                 spacer, spacer, spacer,
-                 align="hv", ncol=3, nrow=5, rel_widths=c(0.15, 1, 0.05), rel_heights=c(0.1, 1, 1, 1, 0.1), axis="rltb", scale=1) +
-  # y-axis labels
-  draw_label("Host density ± SE", x=0.04, y=0.81, angle=90, size=14) +
-  draw_label("Host biomass density, mg ± SE", x=0.04, y=0.5, angle=90, size=14) +
-  draw_label("Periphyton productivity ± SE", x=0.04, y=0.19, angle=90, size=14) +
-  # x-axis labels
-  draw_label("Weeks post snail and schistosome introduction", x = 0.55, y = 0.01, vjust=0 ,size=14) +
-  # panel labels
-  draw_label("A", x = 0.22, y = 0.95) + 
-  draw_label("B", x = 0.22, y = 0.64) +
-  draw_label("C", x = 0.22, y = 0.33) +
-  # fit statistics
-  draw_label(expression(paste(R^2, " = 0.68")), x=0.35, y=0.94, size=12)+
-  draw_label(expression(paste(R^2, " = 0.48")), x=0.35, y=0.62, size=12)+
-  draw_label(expression(paste(R^2, " = 0.27")), x=0.35, y=0.32, size=12)+
-# legend
-  draw_label(expression(underline("Founder size")), x=0.86, y=0.95, size=11) +
-  draw_label("●", x=0.81, y=0.93, size=16, colour="black") + # unicode character, found using character map
-  draw_label("▲", x=0.81, y=0.91, size=12, colour="black") + # unicode character
-  draw_label("▪", x=0.81, y=0.89, size=24, colour="black") + # unicode character
-  draw_line(x = c(0.825, 0.86), y=c(0.9275, 0.9275), linetype="dotted") + draw_label("Small", x = 0.87, y=0.93, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.9075, 0.9075), linetype="dashed") + draw_label("Medium", x = 0.87, y=0.91, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.8875, 0.8875), linetype="solid") + draw_label("Large", x = 0.87, y=0.89, size=11, hjust=0) +
-  draw_label(expression(underline("Nutrients")), x=0.86, y=0.86, size=11) +
-  draw_label("High", x=0.86, y=0.84, size=11, colour="limegreen") +
-  draw_label("Low", x=0.86, y=0.82, size=11) 
-
-save_plot("Fig2_SufferComp.png", Fig2, ncol=3, nrow=5, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
-
-
-### New Fig 2, split out by nutrient treatment
-p1H =  ggplot(data=p1fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p2A =  ggplot(data=p2ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Snail_density, colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Snail_density , ymin=Snail_density - Snail_density_SE,
                                        ymax=Snail_density + Snail_density_SE, colour=interaction(Size, High)), inherit.aes = F) 
 
 
-p1L =  ggplot(data=p1fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p2B =  ggplot(data=p2ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-   scale_color_manual(values=c("black", NA, "red", NA, "blue", NA)) +
-  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA)) + xlim(c(1, 15)) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Snail_density , colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Snail_density , ymin=Snail_density - Snail_density_SE,
                                        ymax=Snail_density + Snail_density_SE, colour=interaction(Size, High)), inherit.aes = F)
 
-p2H =  ggplot(data=p2fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+# 2C, D Snail biomass 
+m_aS2 = gamm(pmax(Biomass_density,1) ~ Size  + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"), 
+             family=Gamma(link="log"), correlation=corCAR1(form=~Week|Tank), niterPQL=100, method="REML", data=tanks)
+summary(m_aS2$gam)
+#draw(derivatives(m_aS2$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative
+
+p2CDfit = plot_smooth(m_aS2$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, se=1, shade=T, 
+                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
+p2CDfit[,"High"] = as.factor(p2CDfit[,"High"])
+
+p2C =  ggplot(data=p2CDfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Biomass_density,colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Biomass_density , ymin=Biomass_density - Biomass_density_SE,
                                        ymax=Biomass_density + Biomass_density_SE, colour=interaction(Size, High)), inherit.aes = F)
 
-p2L =  ggplot(data=p2fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p2D =  ggplot(data=p2CDfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA)) +
-  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA)) + xlim(c(1, 15)) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Biomass_density,colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Biomass_density , ymin=Biomass_density - Biomass_density_SE,
                                        ymax=Biomass_density + Biomass_density_SE, colour=interaction(Size, High)), inherit.aes = F)
 
-p5H =  ggplot(data=p5fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+#2E, F - Periphyton
+m_peri = gamm(Peri_F ~  Size + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"),
+              family=Gamma(link="log"), correlation=corCAR1(form=~Week|Tank), data=tanks)
+summary(m_peri$gam)
+
+p2EFfit = plot_smooth(m_peri$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, se=1, shade=T,
+                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
+p2EFfit[,"High"] = as.factor(p2EFfit[,"High"])
+
+p2E =  ggplot(data=p2EFfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Periphyton, group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Periphyton, ymin=Periphyton - Periphyton_SE,
                                        ymax=Periphyton + Periphyton_SE, colour=interaction(Size, High)), inherit.aes = F)
 
-p5L =  ggplot(data=p5fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p2F =  ggplot(data=p2EFfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA)) +
-  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA)) + xlim(c(1, 15)) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Periphyton, group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Periphyton, ymin=Periphyton - Periphyton_SE,
                                        ymax=Periphyton + Periphyton_SE, colour=interaction(Size, High)), inherit.aes = F)
 
-Fig2.v2 = plot_grid(spacer, spacer, spacer, spacer,
-                 spacer, p1H, p1L, spacer,
-                 spacer, p2H, p2L,spacer,
-                 spacer, p5H, p5L, spacer,
+
+### Create a blank "spacer" for cleaner plotting ###
+spacer = ggplot(data=p1fit, aes(x=Week, y=fit)) +
+  geom_blank() + theme_void()
+
+
+### Fig 2
+Fig2 = plot_grid(spacer, spacer, spacer, spacer,
+                 spacer, p2A, p2B, spacer,
+                 spacer, p2C, p2D,spacer,
+                 spacer, p2E, p2F, spacer,
                  spacer, spacer, spacer, spacer,
                  align="hv", ncol=4, nrow=5, rel_widths=c(0.1, 1, 1, 0.05), rel_heights=c(0.15, 1, 1, 1, 0.1), axis="rltb", scale=1) +
   # Column labels
@@ -275,11 +208,11 @@ Fig2.v2 = plot_grid(spacer, spacer, spacer, spacer,
   draw_label("Medium", x = 0.42, y=0.91, size=11, color = "black") +
   draw_label("Large", x = 0.42, y=0.89, size=11, color = "red") 
 
-save_plot("Fig2_SufferComp_v2.png", Fig2.v2, ncol=4, nrow=5, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
+save_plot("Fig2_SufferComp.png", Fig2, ncol=4, nrow=5, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
 
 
 
-## infected snails, and cercariae?
+## Figure 3 - infected snails, and cercariae
 # 1B 
 
 # Needed to add a single infected snail to one tank from each replicate at week 2 to avoid convergence issue from log-link
@@ -290,213 +223,63 @@ m_Inf = gamm(Infected_abundance2 ~ Size + s(Week, by=Size) + s(Week, by=High) + 
              family=quasipoisson(link="log"), correlation=corCAR1(form=~Week|Tank), data=subset(tanks, Week >= 1))
 summary(m_Inf$gam)
 
-p3fit = plot_smooth(m_Inf$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
+p3ABfit = plot_smooth(m_Inf$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", shade=T, 
                     ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p3fit[,"High"] = as.factor(p3fit[,"High"])
+p3ABfit[,"High"] = as.factor(p3ABfit[,"High"])
 
-p3 =  ggplot(data=p3fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) +
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-  scale_fill_manual(values=c("black", "limegreen")) + xlim(c(1, 15)) +
-  geom_point(data=subset(tanksummary, Week >= 1), aes(x=Week, y=Infected, group=interaction(Size, High), shape=Size)) +
-  geom_linerange(data=subset(tanksummary, Week >= 1), aes(x=Week, y=Infected, ymin=Infected - Infected_SE, ymax=Infected + Infected_SE, colour=High), inherit.aes = F)
+p3A =  ggplot(data=p3ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
+  geom_point(data=tanksummary, aes(x=Week, y=Infected, colour=interaction(Size, High), group=interaction(Size, High))) +
+  geom_linerange(data=tanksummary, aes(x=Week, y=Infected, ymin=Infected - Infected_SE, ymax=Infected + Infected_SE,
+                                       colour=interaction(Size, High)), inherit.aes = F)
 
-p3
+p3A
+
+
+p3B = ggplot(data=p3ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
+  geom_point(data=tanksummary, aes(x=Week, y=Infected, colour=interaction(Size, High), group=interaction(Size, High))) +
+  geom_linerange(data=tanksummary, aes(x=Week, y=Infected, ymin=Infected - Infected_SE, ymax=Infected + Infected_SE,
+                                       colour=interaction(Size, High)), inherit.aes = F)
+p3B
 
 #1C - cercariae
 m_Cerc = gamm(Cercarial_production ~ Size + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"),
               family=quasipoisson, correlation=corCAR1(form=~Week|Tank), data=tanks)
 summary(m_Cerc$gam)
 
-draw(derivatives(m_Cerc$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative (no peak, always decreasing)
+draw(derivatives(m_Cerc$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative
 
-p4fit = plot_smooth(m_Cerc$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
+p3CDfit = plot_smooth(m_Cerc$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, se=1, shade=T,
                     ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p4fit[,"High"] = as.factor(p4fit[,"High"])
+p3CDfit[,"High"] = as.factor(p3CDfit[,"High"])
 
-p4 =  ggplot(data=p4fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) +
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-  scale_fill_manual(values=c("black", "limegreen")) + xlim(c(1, 15)) +
-  geom_point(data=subset(tanksummary, Week >= 1), aes(x=Week, y=Cercariae, group=interaction(Size, High), shape=Size)) +
-  geom_linerange(data=subset(tanksummary, Week >= 1), aes(x=Week, y=Cercariae, ymin=Cercariae - Cercariae_SE,
-                                                          ymax=Cercariae + Cercariae_SE, colour=High), inherit.aes = F)
-
-
-Fig3A = plot_grid(spacer, spacer, spacer,
-                 spacer, p3, spacer,
-                 spacer, p4, spacer,
-                 spacer, spacer, spacer,
-                 align="hv", ncol=3, nrow=4, rel_widths=c(0.15, 1, 0.05), rel_heights=c(0.1, 1, 1, 0.1), axis="rltb", scale=1) +
-  # y-axis labels
-  draw_label("Infected host density ± SE", x=0.04, y=0.75, angle=90, size=14) +
-  draw_label("Total Cercarial production ± SE", x=0.04, y=0.25, angle=90, size=14) +
-  # x-axis labels
-  draw_label("Weeks post snail and schistosome introduction", x = 0.55, y = 0.01, vjust=0 ,size=14) +
-  # panel labels
-  draw_label("A", x = 0.20, y = 0.94) + 
-  draw_label("B", x = 0.20, y = 0.48) +
-  # fit statistics
-  draw_label(expression(paste(R^2, " = 0.30")), x=0.24, y=0.90, size=12)+
-  draw_label(expression(paste(R^2, " = 0.67")), x=0.24, y=0.44, size=12)+
-  # legend
-  draw_label(expression(underline("Founder size")), x=0.86, y=0.95, size=11) +
-  draw_label("●", x=0.81, y=0.93, size=16, colour="black") + # unicode character, found using character map
-  draw_label("▲", x=0.81, y=0.91, size=12, colour="black") + # unicode character
-  draw_label("▪", x=0.81, y=0.89, size=24, colour="black") + # unicode character
-  draw_line(x = c(0.825, 0.86), y=c(0.9275, 0.9275), linetype="dotted") + draw_label("Small", x = 0.87, y=0.93, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.9075, 0.9075), linetype="dashed") + draw_label("Medium", x = 0.87, y=0.91, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.8875, 0.8875), linetype="solid") + draw_label("Large", x = 0.87, y=0.89, size=11, hjust=0) +
-  draw_label(expression(underline("Nutrients")), x=0.86, y=0.86, size=11) +
-  draw_label("High", x=0.86, y=0.84, size=11, colour="limegreen") +
-  draw_label("Low", x=0.86, y=0.82, size=11) 
-
-save_plot("Fig3A_SufferComp.png", Fig3A, ncol=3, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
-
-
-
-#1C - cercariae
-m_CercPC = gamm(Cercarial_production ~ Size + offset(log(Infected_abundance)) + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"),
-              family=quasipoisson, correlation=corCAR1(form=~Week|Tank), data=subset(tanks, Week>=4 & Infected_abundance > 0))
-summary(m_CercPC$gam)
-draw(derivatives(m_CercPC$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative (no peak, always decreasing)
-
-p6fit = plot_smooth(m_CercPC$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, main="", cex.lab=2, cex.axis=1.5, se=1, shade=T,
-                    col=c("black", "black", "black", "limegreen", "limegreen", "limegreen"), lty=c(3, 2, 1, 3, 2, 1), lwd=2, legend_plot_all = F,
-                    tcl=0.5, h0=NULL, 
-                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
-p6fit[,"High"] = as.factor(p6fit[,"High"])
-
-inf_only = subset(tanks, Week>=4 & Infected_abundance > 0)
-plot(PercapShed ~ Week, data=inf_only, pch=21, bg="red")
-
-
-p6 =  ggplot(data=p6fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=High, linetype=Size)) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=High, colour=NA), alpha=0.2) + 
-  scale_linetype_manual(values=c(3, 2, 1)) + scale_color_manual(values=c("black", "limegreen")) +
-   scale_fill_manual(values=c("black", "limegreen")) + xlim(c(4, 15)) +
-   geom_point(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, group=interaction(Size, High), shape=Size)) +
-   geom_linerange(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, ymin=PercapShed - PercapShed_SE,
-                                                           ymax=PercapShed + PercapShed_SE, colour=High), inherit.aes = F)
-
-## 3 - What factors influence per capita shedding?
-# Center Diameter and total biomass to help glmmTMB
-snails2 = transform(snails, Diameter=scale(Diameter,center=T, scale=F), Total_Biomass=scale(Total_Biomass, center=T, scale=F))
-mod2 = glmmTMB(Cercariae ~ Diameter*Total_Biomass + (1|Tank), family=nbinom2, data=snails2)
-summary(mod2)
-# Body size increases, population (biomass) density decreases shedding
-
-quantile(snails$Diameter, probs=c(0, 0.5, 1))
-
-D3 = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = 3 - 13.21405))
-D14 = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = 14 - 13.21405))
-D22 = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = 22- 13.21405))
-
-p7 = ggplot(data=snails, aes(x=Total_Biomass, y=Cercariae)) +
-  theme(axis.ticks.length = unit(-1.5, "mm")) + 
-  geom_point() + scale_y_log10() +
-  geom_line(data=D3, aes(x+594.6598, predicted), col="blue") +
-  geom_ribbon(data=D3, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, fill="blue") +
-  geom_line(data=D14, aes(x+594.6598, predicted)) +
-  geom_ribbon(data=D14, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2) +
-  geom_line(data=D22, aes(x+594.6598, predicted), col="red") +
-  geom_ribbon(data=D22, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, fill="red")
-
-
-
-Fig3B = plot_grid(spacer, spacer, spacer, spacer, spacer,
-                  spacer, p3, spacer, p4, spacer,
-                  spacer, spacer, spacer, spacer, spacer,
-                  spacer, p6, spacer, p7, spacer,
-                  spacer, spacer, spacer, spacer, spacer,
-                  align="hv", ncol=5, nrow=5, rel_widths=c(0.075, 1, 0.075, 1, 0.05), 
-                  rel_heights=c(0.05, 1, 0.1, 1, 0.1), axis="rltb", scale=1) +
-  # y-axis labels
-  draw_label("Infected host density ± SE", x=0.03, y=0.75, angle=90, size=14) +
-  draw_label("Total cercarial production ± SE", x=0.5, y=0.75, angle=90, size=14) +
-  draw_label("Per capita cercarial production ± SE", x=0.03, y=0.25, angle=90, size=14) +
-  draw_label("Per capita cercarial production ± SE", x=0.5, y=0.25, angle=90, size=14) +
-  # x-axis labels
-  draw_label("Weeks post snail introduction", x = 0.55, y = 0.51, vjust=0 ,size=14) +
-  draw_label("Weeks post snail introduction", x = 0.27, y = 0.02, vjust=0 ,size=14) +
-  draw_label("Snail biomass density, mg", x = 0.78, y = 0.02, vjust=0 ,size=14) +
-  # panel labels
-  draw_label("A", x = 0.12, y = 0.95) + 
-  draw_label("B", x = 0.62, y = 0.95) +
-  draw_label("C", x = 0.12, y = 0.48) +
-  draw_label("D", x = 0.62, y = 0.48) +
-  # fit statistics
-  draw_label(expression(paste(R^2, " = 0.30")), x=0.24, y=0.93, size=12)+
-  draw_label(expression(paste(R^2, " = 0.66")), x=0.7, y=0.93, size=12)+
-  draw_label(expression(paste(R^2, " = 0.67")), x=0.24, y=0.47, size=12)+
-  # legend
-  draw_label(expression(underline("Founder size")), x=0.86, y=0.95, size=11) +
-  draw_label("●", x=0.81, y=0.93, size=16, colour="black") + # unicode character, found using character map
-  draw_label("▲", x=0.81, y=0.91, size=12, colour="black") + # unicode character
-  draw_label("▪", x=0.81, y=0.89, size=24, colour="black") + # unicode character
-  draw_line(x = c(0.825, 0.86), y=c(0.9275, 0.9275), linetype="dotted") + draw_label("Small", x = 0.87, y=0.93, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.9075, 0.9075), linetype="dashed") + draw_label("Medium", x = 0.87, y=0.91, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.8875, 0.8875), linetype="solid") + draw_label("Large", x = 0.87, y=0.89, size=11, hjust=0) +
-  draw_label(expression(underline("Nutrients")), x=0.86, y=0.86, size=11) +
-  draw_label("High", x=0.86, y=0.84, size=11, colour="limegreen") +
-  draw_label("Low", x=0.86, y=0.82, size=11) 
-
-save_plot("Fig3B_SufferComp.png", Fig3B, ncol=3, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
-
-#### Figure 3C, population-level infection/cerc data, splitting things out by nutrient level ##
-
-ggplot(data=p1fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p3C =  ggplot(data=p3CDfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Snail_density, colour=interaction(Size, High), group=interaction(Size, High))) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Snail_density , ymin=Snail_density - Snail_density_SE,
-                                       ymax=Snail_density + Snail_density_SE, colour=interaction(Size, High)), inherit.aes = F) 
-
-
-p3H =  ggplot(data=p3fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Infected, colour=interaction(Size, High), group=interaction(Size, High))) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Infected, ymin=Infected - Infected_SE, ymax=Infected + Infected_SE,
-                                       colour=interaction(Size, High)), inherit.aes = F)
-
-p3H
-
-
-p3L = ggplot(data=p3fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA)) +
-  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA)) + xlim(c(1, 15)) +
-  geom_point(data=tanksummary, aes(x=Week, y=Infected, colour=interaction(Size, High), group=interaction(Size, High))) +
-  geom_linerange(data=tanksummary, aes(x=Week, y=Infected, ymin=Infected - Infected_SE, ymax=Infected + Infected_SE,
-                                       colour=interaction(Size, High)), inherit.aes = F)
-p3L
-
-p4H =  ggplot(data=p4fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
-  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue")) +
-  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red")) + xlim(c(1, 15)) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Cercariae, colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Cercariae, ymin=Cercariae - Cercariae_SE, ymax=Cercariae + Cercariae_SE,
                                        colour=interaction(Size, High)), inherit.aes = F)
 
-p4L =  ggplot(data=p4fit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+p3D =  ggplot(data=p3CDfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
   geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
-  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA)) +
-  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA)) + xlim(c(1, 15)) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
   geom_point(data=tanksummary, aes(x=Week, y=Cercariae, colour=interaction(Size, High), group=interaction(Size, High))) +
   geom_linerange(data=tanksummary, aes(x=Week, y=Cercariae, ymin=Cercariae - Cercariae_SE, ymax=Cercariae + Cercariae_SE,
                                        colour=interaction(Size, High)), inherit.aes = F)
 
-Fig3.v2 = plot_grid(spacer, spacer, spacer, spacer,
-                    spacer, p3H, p3L, spacer,
-                    spacer, p4H, p4L,spacer,
+
+#### Figure 3, population-level infection/cerc data, splitting things out by nutrient level ##
+
+Fig3 = plot_grid(spacer, spacer, spacer, spacer,
+                    spacer, p3A, p3B, spacer,
+                    spacer, p3C, p3D,spacer,
                     spacer, spacer, spacer, spacer,
                     align="hv", ncol=4, nrow=4, rel_widths=c(0.1, 1, 1, 0.05), rel_heights=c(0.15, 1, 1, 0.1), axis="rltb", scale=1) +
   # Column labels
@@ -504,12 +287,12 @@ Fig3.v2 = plot_grid(spacer, spacer, spacer, spacer,
   draw_label(expression(underline("Low nutrient")), x=0.78, y=0.99) +
   # y-axis labels
   draw_label("Infected host density ± SE", x=0.02, y=0.75, angle=90, size=14) +
-  draw_label("Total cercarial production ± SE", x=0.02, y=0.35, angle=90, size=14) +
+  draw_label("Total cercarial production ± SE", x=0.02, y=0.25, angle=90, size=14) +
   # x-axis labels
   draw_label("Weeks post snail and schistosome introduction", x = 0.55, y = 0.01, vjust=0 ,size=14) +
   # panel labels
-  draw_label("A", x = 0.13, y = 0.92) +  draw_label("B", x = 0.59, y = 0.92) +
-  draw_label("C", x = 0.13, y = 0.47) +  draw_label("D", x = 0.59, y = 0.47) +
+  draw_label("A", x = 0.11, y = 0.92) +  draw_label("B", x = 0.57, y = 0.92) +
+  draw_label("C", x = 0.11, y = 0.47) +  draw_label("D", x = 0.57, y = 0.47) +
   # fit statistics
   draw_label(expression(paste(R^2, " = 0.33")), x=0.9, y=0.94, size=12)+
   draw_label(expression(paste(R^2, " = 0.71")), x=0.9, y=0.47, size=12)+
@@ -519,46 +302,129 @@ Fig3.v2 = plot_grid(spacer, spacer, spacer, spacer,
   draw_label("Medium", x = 0.42, y=0.91, size=11, color = "black") +
   draw_label("Large", x = 0.42, y=0.89, size=11, color = "red") 
 
-save_plot("Fig3_SufferComp_v2.png", Fig3.v2, ncol=4, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
+save_plot("Fig3_SufferComp.png", Fig3, ncol=4, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
 
 
-Fig4 = plot_grid(spacer, spacer, spacer, spacer, spacer,
-                  spacer, p3, spacer, p4, spacer,
-                  spacer, spacer, spacer, spacer, spacer,
-                  spacer, p6, spacer, p7, spacer,
-                  spacer, spacer, spacer, spacer, spacer,
-                  align="hv", ncol=5, nrow=5, rel_widths=c(0.075, 1, 0.075, 1, 0.05), 
-                  rel_heights=c(0.05, 1, 0.1, 1, 0.1), axis="rltb", scale=1) +
+## Figure 4 - Population- and Individual-level analyses of per capita shedding?
+
+#4A, B - per capita cercariae, pop level
+m_CercPC = gamm(Cercarial_production ~ Size + offset(log(Infected_abundance)) + s(Week, by=Size) + s(Week, by=High) + s(Tank, bs="re"),
+                family=quasipoisson, correlation=corCAR1(form=~Week|Tank), data=subset(tanks, Week>=4 & Infected_abundance > 0))
+summary(m_CercPC$gam)
+draw(derivatives(m_CercPC$gam, term = "Week")) # Peaks occur when first derivatives pass from positive to negative (no peak, always decreasing)
+
+p4ABfit = plot_smooth(m_CercPC$gam, view="Week", plot_all=c("Size", "High"), rug=F, transform=exp, se=1, shade=T,
+                    ylab="Response", rm.ranef=T, xlab="Time (weeks)", hide.label=T)$fv
+p4ABfit[,"High"] = as.factor(p4ABfit[,"High"])
+
+
+p4A =  ggplot(data=p4ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
+  scale_color_manual(values=c(NA, "black", NA, "red", NA, "blue"), na.value=NA) +
+  scale_fill_manual(values=c(NA, NA, NA, "blue", "black", "red"), na.value=NA) + xlim(c(1, 15)) +
+  geom_point(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, group=interaction(Size, High))) +
+  geom_linerange(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, ymin=PercapShed - PercapShed_SE,
+                                                          ymax=PercapShed + PercapShed_SE, colour=interaction(Size, High)), inherit.aes = F)
+
+p4B =  ggplot(data=p4ABfit, aes(x=Week, y=fit, group=interaction(Size, High), colour=interaction(Size, High))) +
+  geom_line() + geom_ribbon(aes(ymin=ll, ymax=ul, fill=interaction(Size, High), colour=NA), alpha=0.2) +
+  scale_color_manual(values=c("black", NA, "red", NA, "blue", NA), na.value=NA) +
+  scale_fill_manual(values=c("blue", "black", "red", NA, NA, NA), na.value=NA) + xlim(c(1, 15)) +
+  geom_point(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, group=interaction(Size, High))) +
+  geom_linerange(data=subset(tanksummary, Week >= 4), aes(x=Week, y=PercapShed, ymin=PercapShed - PercapShed_SE,
+                                                          ymax=PercapShed + PercapShed_SE, colour=interaction(Size, High)), inherit.aes = F)
+# 4C, D per capita shedding, ind level
+
+# Center Diameter and total biomass to help glmmTMB
+snails[,"Comp_Biomass"] = snails[,"Total_Biomass"] - snails[,"Biomass"]
+high_tanks = unique(subset(tanks, High == 1, select="Tank"))[,1]
+
+snails[,"High"] = ifelse(snails[,"Tank"] %in% high_tanks, 1, 0)
+snails[,"Alg_prod"] = 0
+for(i in 1:length(snails[,"Tank"])){
+  snails[i,"Alg_prod"] = subset(tanks, Week == snails[i, "Week"] & Tank == snails[i, "Tank"], select="Peri_F")
+}
+
+snails2 = transform(snails, Diameter=scale(Diameter,center=T, scale=F), Biomass=scale(Biomass/1000, center=T, scale=F), Total_Biomass=scale(Total_Biomass/1000, center=T, scale=F),
+                    Comp_Biomass=scale(Comp_Biomass/1000, center=T, scale=F), Alg_prod = scale(Alg_prod/1000, center=T, scale=F))
+mod2 = glmmTMB(Cercariae ~ Biomass*Comp_Biomass + (1|Tank), family=nbinom2, data=snails2)
+summary(mod2)
+
+sizes = quantile(snails2$Biomass, probs=c(0.1, 0.9))
+
+small = ggpredict(mod2, terms="Comp_Biomass", condition = c(Biomass = as.numeric(sizes[1])))
+large = ggpredict(mod2, terms="Comp_Biomass", condition = c(Biomass = as.numeric(sizes[2])))
+
+snails2[,"High"] = as.factor(snails2[,"High"])
+
+p7 = ggplot(data=snails2, aes(x=Comp_Biomass, y=Cercariae)) +
+  theme(axis.ticks.length = unit(-1.5, "mm")) + 
+  geom_point() + scale_y_log10(limits=c(1, 10000)) +
+  geom_line(data=small, aes(x, predicted), inherit.aes = F) +
+  geom_ribbon(data=small, aes(x, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F) +
+  # geom_line(data=medium, aes(1000*(x+0.6), predicted)) +
+  # geom_ribbon(data=medium, aes(1000*(x+0.6), predicted, ymin = conf.low, ymax = conf.high), alpha = .2) +
+  geom_line(data=large, aes(x, predicted), size=2, inherit.aes = F) +
+  geom_ribbon(data=large, aes(x, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F)
+
+p7
+
+
+
+# Body size increases, population (biomass) density decreases shedding
+
+#residuals(mod2, type="response")
+ library(visreg)
+ visreg(mod2, xvar="Total_Biomass", type="contrast")
+
+sizes = quantile(snails2$Diameter, probs=c(0.1, 0.5, 0.9))
+
+small = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[1]) - 13.21405))
+medium = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[2]) - 13.21405))
+large = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[3]) - 13.21405))
+
+medium = ggpredict(mod2, terms="Total_Biomass")
+
+
+plot(medium, add.data = T)
+
+p7 = ggplot(data=snails, aes(x=Total_Biomass, y=Cercariae)) +
+  theme(axis.ticks.length = unit(-1.5, "mm")) + 
+  geom_point() + scale_y_log10() +
+  # geom_line(data=small, aes(x+594.6598, predicted)) +
+  # geom_ribbon(data=small, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2) +
+  geom_line(data=medium, aes(x+594.6598, predicted)) +
+  geom_ribbon(data=medium, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2) #+
+  # geom_line(data=large, aes(x+594.6598, predicted)) +
+  #geom_ribbon(data=large, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2)
+
+p7
+
+Fig4 = plot_grid(spacer,  spacer, spacer,
+                  spacer, p6H, spacer,
+                  spacer, p6L,spacer,
+                 spacer,  spacer, spacer,
+                 spacer, p7, spacer,
+                  spacer, spacer, spacer,
+                  align="hv", ncol=3, nrow=6, rel_widths=c(0.075, 1, 0.05), 
+                  rel_heights=c(0.05, 1, 1, 0.1, 1, 0.1), axis="rltb", scale=1) +
   # y-axis labels
-  draw_label("Infected host density ± SE", x=0.03, y=0.75, angle=90, size=14) +
-  draw_label("Total cercarial production ± SE", x=0.5, y=0.75, angle=90, size=14) +
-  draw_label("Per capita cercarial production ± SE", x=0.03, y=0.25, angle=90, size=14) +
-  draw_label("Per capita cercarial production ± SE", x=0.5, y=0.25, angle=90, size=14) +
+  draw_label("Per capita cercarial production ± SE", x=0.03, y=0.5, angle=90, size=14) +
   # x-axis labels
-  draw_label("Weeks post snail introduction", x = 0.55, y = 0.51, vjust=0 ,size=14) +
-  draw_label("Weeks post snail introduction", x = 0.27, y = 0.02, vjust=0 ,size=14) +
-  draw_label("Snail biomass density, mg", x = 0.78, y = 0.02, vjust=0 ,size=14) +
+  draw_label("Weeks post snail introduction", x = 0.5, y = 0.35, vjust=0 ,size=14) +
+  draw_label("Snail biomass density, mg", x = 0.5, y = 0.01, vjust=0 ,size=14) +
   # panel labels
-  draw_label("A", x = 0.12, y = 0.95) + 
-  draw_label("B", x = 0.62, y = 0.95) +
-  draw_label("C", x = 0.12, y = 0.48) +
-  draw_label("D", x = 0.62, y = 0.48) +
+  draw_label("A) High Nutrient", x = 0.15, y = 0.97, hjust=0) + 
+  draw_label("B) Low Nutrient", x = 0.15, y = 0.65, hjust=0) +
+  draw_label("C", x = 0.15, y = 0.35, hjust = 0) +
   # fit statistics
-  draw_label(expression(paste(R^2, " = 0.30")), x=0.24, y=0.93, size=12)+
-  draw_label(expression(paste(R^2, " = 0.66")), x=0.7, y=0.93, size=12)+
-  draw_label(expression(paste(R^2, " = 0.67")), x=0.24, y=0.47, size=12)+
+  draw_label(expression(paste(R^2, " = 0.67")), x=0.2, y=0.93, size=12)+
   # legend
-  draw_label(expression(underline("Founder size")), x=0.86, y=0.95, size=11) +
-  draw_label("●", x=0.81, y=0.93, size=16, colour="black") + # unicode character, found using character map
-  draw_label("▲", x=0.81, y=0.91, size=12, colour="black") + # unicode character
-  draw_label("▪", x=0.81, y=0.89, size=24, colour="black") + # unicode character
-  draw_line(x = c(0.825, 0.86), y=c(0.9275, 0.9275), linetype="dotted") + draw_label("Small", x = 0.87, y=0.93, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.9075, 0.9075), linetype="dashed") + draw_label("Medium", x = 0.87, y=0.91, size=11, hjust=0) +
-  draw_line(x = c(0.825, 0.86), y=c(0.8875, 0.8875), linetype="solid") + draw_label("Large", x = 0.87, y=0.89, size=11, hjust=0) +
-  draw_label(expression(underline("Nutrients")), x=0.86, y=0.86, size=11) +
-  draw_label("High", x=0.86, y=0.84, size=11, colour="limegreen") +
-  draw_label("Low", x=0.86, y=0.82, size=11) 
+  draw_label(expression(underline("Founder size")), x=0.72, y=0.95, size=11) +
+  draw_label("Small", x = 0.72, y=0.93, size=11, color = "blue") +
+  draw_label("Medium", x = 0.72, y=0.91, size=11, color = "black") +
+  draw_label("Large", x = 0.72, y=0.89, size=11, color = "red") 
 
-save_plot("Fig4.png", Fig3B, ncol=3, nrow=4, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
+save_plot("Fig4.png", Fig4, ncol=3, nrow=6, base_height=2, base_aspect_ratio = 1.1, dpi=300, units="in")
 
 
