@@ -174,7 +174,7 @@ p2F =  ggplot(data=p2EFfit, aes(x=Week, y=fit, group=interaction(Size, High), co
 
 
 ### Create a blank "spacer" for cleaner plotting ###
-spacer = ggplot(data=p1fit, aes(x=Week, y=fit)) +
+spacer = ggplot(data=p2ABfit, aes(x=Week, y=fit)) +
   geom_blank() + theme_void()
 
 
@@ -352,73 +352,40 @@ summary(mod2)
 
 sizes = quantile(snails2$Biomass, probs=c(0.1, 0.9))
 
-small = ggpredict(mod2, terms="Comp_Biomass", condition = c(Biomass = as.numeric(sizes[1])))
-large = ggpredict(mod2, terms="Comp_Biomass", condition = c(Biomass = as.numeric(sizes[2])))
+small = ggpredict(mod2, terms="Comp_Biomass [-0.53:0.83, by = 0.01]", condition = c(Biomass = as.numeric(sizes[1])))
+large = ggpredict(mod2, terms="Comp_Biomass [-0.53:0.83, by = 0.01]", condition = c(Biomass = as.numeric(sizes[2])))
 
 snails2[,"High"] = as.factor(snails2[,"High"])
 
-p7 = ggplot(data=snails2, aes(x=Comp_Biomass, y=Cercariae)) +
+p4C = ggplot(data=snails2, aes(x=1000*(Comp_Biomass+ 0.52), y=Cercariae)) +
   theme(axis.ticks.length = unit(-1.5, "mm")) + 
   geom_point() + scale_y_log10(limits=c(1, 10000)) +
-  geom_line(data=small, aes(x, predicted), inherit.aes = F) +
-  geom_ribbon(data=small, aes(x, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F) +
-  # geom_line(data=medium, aes(1000*(x+0.6), predicted)) +
-  # geom_ribbon(data=medium, aes(1000*(x+0.6), predicted, ymin = conf.low, ymax = conf.high), alpha = .2) +
-  geom_line(data=large, aes(x, predicted), size=2, inherit.aes = F) +
-  geom_ribbon(data=large, aes(x, predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F)
+  geom_line(data=small, aes(1000*(x+0.52), predicted), inherit.aes = F) +
+  geom_ribbon(data=small, aes(1000*(x+0.52), predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F) +
+  geom_line(data=large, aes(1000*(x+0.52), predicted), size=2, inherit.aes = F) +
+  geom_ribbon(data=large, aes(1000*(x+0.52), predicted, ymin = conf.low, ymax = conf.high), alpha = .2, inherit.aes = F)
 
-p7
-
-
-
-# Body size increases, population (biomass) density decreases shedding
-
-#residuals(mod2, type="response")
- library(visreg)
- visreg(mod2, xvar="Total_Biomass", type="contrast")
-
-sizes = quantile(snails2$Diameter, probs=c(0.1, 0.5, 0.9))
-
-small = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[1]) - 13.21405))
-medium = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[2]) - 13.21405))
-large = ggpredict(mod2, terms="Total_Biomass", condition = c(Diameter = as.numeric(sizes[3]) - 13.21405))
-
-medium = ggpredict(mod2, terms="Total_Biomass")
-
-
-plot(medium, add.data = T)
-
-p7 = ggplot(data=snails, aes(x=Total_Biomass, y=Cercariae)) +
-  theme(axis.ticks.length = unit(-1.5, "mm")) + 
-  geom_point() + scale_y_log10() +
-  # geom_line(data=small, aes(x+594.6598, predicted)) +
-  # geom_ribbon(data=small, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2) +
-  geom_line(data=medium, aes(x+594.6598, predicted)) +
-  geom_ribbon(data=medium, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2) #+
-  # geom_line(data=large, aes(x+594.6598, predicted)) +
-  #geom_ribbon(data=large, aes(x+594.6598, predicted, ymin = conf.low, ymax = conf.high), alpha = .2)
-
-p7
+p4C
 
 Fig4 = plot_grid(spacer,  spacer, spacer,
-                  spacer, p6H, spacer,
-                  spacer, p6L,spacer,
+                  spacer, p4A, spacer,
+                  spacer, p4B,spacer,
                  spacer,  spacer, spacer,
-                 spacer, p7, spacer,
+                 spacer, p4C, spacer,
                   spacer, spacer, spacer,
                   align="hv", ncol=3, nrow=6, rel_widths=c(0.075, 1, 0.05), 
                   rel_heights=c(0.05, 1, 1, 0.1, 1, 0.1), axis="rltb", scale=1) +
   # y-axis labels
   draw_label("Per capita cercarial production ± SE", x=0.03, y=0.5, angle=90, size=14) +
   # x-axis labels
-  draw_label("Weeks post snail introduction", x = 0.5, y = 0.35, vjust=0 ,size=14) +
-  draw_label("Snail biomass density, mg", x = 0.5, y = 0.01, vjust=0 ,size=14) +
+  draw_label("Weeks post snail introduction", x = 0.55, y = 0.35, size=14) +
+  draw_label("Snail biomass density, mg", x = 0.55, y = 0.01, ,size=14) +
   # panel labels
-  draw_label("A) High Nutrient", x = 0.15, y = 0.97, hjust=0) + 
-  draw_label("B) Low Nutrient", x = 0.15, y = 0.65, hjust=0) +
-  draw_label("C", x = 0.15, y = 0.35, hjust = 0) +
+  draw_label("A) High Nutrient", x = 0.16, y = 0.97, hjust=0) + 
+  draw_label("B) Low Nutrient", x = 0.16, y = 0.65, hjust=0) +
+  draw_label("C", x = 0.16, y = 0.32, hjust = 0) +
   # fit statistics
-  draw_label(expression(paste(R^2, " = 0.67")), x=0.2, y=0.93, size=12)+
+  draw_label(expression(paste(R^2, " = 0.67")), x=0.22, y=0.93, size=12)+
   # legend
   draw_label(expression(underline("Founder size")), x=0.72, y=0.95, size=11) +
   draw_label("Small", x = 0.72, y=0.93, size=11, color = "blue") +

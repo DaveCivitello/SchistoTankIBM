@@ -2,7 +2,9 @@
 # Loading packages
 library(Matrix)
 library(deSolve)
-library(dplyr)
+library(ggplot2)
+library(cowplot)
+theme_set(theme_cowplot())
 
 # Rtools is needed for compiling the .c file of the DEB model
 rtools <- "C:\\Rtools\\bin"
@@ -113,7 +115,7 @@ run_DEB_IBM = function(N.snail=60, min.L=2, max.L=16, Food=1, n.ticks=112, drip=
   # run the IBM
   for(t in 1:n.ticks){
     #Daily check for time-varying parameters
-    if(drip == F){pars["M_in"] = ifelse( t %in% c(7, 21, 42, 63), 150, 0)}
+    if(drip == F){pars["M_in"] = ifelse( t %in% c(1, 15, 29, 43), 140, 0)}
     
     # Get environmental stats
     environment = c("F" = state$Env_F[t], "M" = state$Env_M[t], "Z" = state$Env_Z[t], "G" = state$Env_G[t])
@@ -238,38 +240,253 @@ summarized_DEB_IBM = function(N.snail=60, min.L=2, max.L=16, Food=1, n.ticks=112
   digest_state(run_DEB_IBM(N.snail, min.L, max.L, Food, n.ticks, drip))
 }
 
+# Gets the mean and 95% CI from a collection of replicated runs
+summarized_IBM_reps = function(data, endpoint){
+  unlisted_reps = matrix(unlist(data[endpoint,]), nrow=dim(data)[2], ncol=length(data[[endpoint,1]]), byrow=T)
+  rep_mean = apply(X=unlisted_reps, MARGIN = 2, FUN=mean)
+  rep_CI = t(apply(X=unlisted_reps, MARGIN = 2, FUN=quantile, probs=c(0.025, 0.975)))
+  data.frame("time" = 1:length(data[[endpoint,1]]), "Mean" = rep_mean, "CI_L" = rep_CI[,1], "CI_H" = rep_CI[,2])
+}
+
+## Make supplement figure for drip vs. pulse of miracidia
 # Runs replicate simulations with the same conditions
 rep_states_drip = replicate(n=50, summarized_DEB_IBM(), simplify=T)
 rep_states_pulse = replicate(n=50, summarized_DEB_IBM(drip=F), simplify=T)
 
-p = ggplot()
-for(i in 1: dim(rep_states_drip)[2]){p = p + geom_line(data=data.frame(rep_states_drip[,i]), aes(x=time, y=Cercariae))}
-p
+FigS1A_df = data.frame(rbind(summarized_IBM_reps(rep_states_drip, "Snails"), summarized_IBM_reps(rep_states_pulse, "Snails")), "M_in" = rep(c("Constant", "Biweekly pulse"), each=113))
+#### Set up means and CIs for supplemental figure ####
+pS1A = ggplot(data=FigS1A_df, aes(x=time, y=Mean/500, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  #xlab("Day") + ylab(expression(paste("Snail density,  ", L^-1, "± 95% CI"))) +
+  labs(fill="Miracidia input mode", colour="Miracidia input mode") +  theme(legend.position = c(0.5, 0.25)) + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L/500, ymax=CI_H/500, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("red", "black")) +
+  scale_color_manual(values=c("red", "black"))
 
-for(i in 1: dim(rep_states_pulse)[2]){p = p + geom_line(data=data.frame(rep_states_pulse[,i]), aes(x=time, y=Cercariae), colour="red")}
-p
+pS1A
 
-p2 = ggplot()
-for(i in 1: dim(rep_states_drip)[2]){p2 = p2 + geom_line(data=data.frame(rep_states_drip[,i]), aes(x=time, y=Snails))}
-for(i in 1: dim(rep_states_pulse)[2]){p2 = p2 + geom_line(data=data.frame(rep_states_pulse[,i]), aes(x=time, y=Snails), colour="red")}
-p2
+FigS1B_df = data.frame(rbind(summarized_IBM_reps(rep_states_drip, "Cercariae"), summarized_IBM_reps(rep_states_pulse, "Cercariae")), "M_in" = rep(c("constant", "biweekly pulse"), each=113))
+#### Set up means and CIs for supplemental figure ####
+pS1B = ggplot(data=FigS1B_df, aes(x=time, y=Mean, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  #xlab("Day") + ylab(expression(paste("Snail density,  ", L^-1, "± 95% CI"))) +  
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("red", "black")) +
+  scale_color_manual(values=c("red", "black"))
 
-p3 = ggplot()
-for(i in 1: dim(rep_states_drip)[2]){p3 = p3 + geom_line(data=data.frame(rep_states_drip[,i]), aes(x=time, y=Food))}
-for(i in 1: dim(rep_states_pulse)[2]){p3 = p3 + geom_line(data=data.frame(rep_states_pulse[,i]), aes(x=time, y=Food), colour="red")}
-p3
+pS1B
 
-p4 = ggplot()
-for(i in 1: dim(rep_states_drip)[2]){p4 = p4 + geom_line(data=data.frame(rep_states_drip[,i]), aes(x=time, y=Miracidia))}
-for(i in 1: dim(rep_states_pulse)[2]){p4 = p4 + geom_line(data=data.frame(rep_states_pulse[,i]), aes(x=time, y=Miracidia), colour="red")}
-p4
+FigS1C_df = data.frame(rbind(summarized_IBM_reps(rep_states_drip, "Food"), summarized_IBM_reps(rep_states_pulse, "Food")), "M_in" = rep(c("constant", "biweekly pulse"), each=113))
+#### Set up means and CIs for supplemental figure ####
+pS1C = ggplot(data=FigS1C_df, aes(x=time, y=Mean, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  #xlab("Day") + ylab(expression(paste("Snail density,  ", L^-1, "± 95% CI"))) +  
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("red", "black")) +
+  scale_color_manual(values=c("red", "black"))
+
+pS1C
+
+FigS1D_df = data.frame(rbind(summarized_IBM_reps(rep_states_drip, "Miracidia"), summarized_IBM_reps(rep_states_pulse, "Miracidia")), "M_in" = rep(c("constant", "biweekly pulse"), each=113))
+#### Set up means and CIs for supplemental figure ####
+pS1D = ggplot(data=FigS1D_df, aes(x=time, y=Mean/500, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  #xlab("Day") + ylab(expression(paste("Snail density,  ", L^-1, "± 95% CI"))) +  
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L/500, ymax=CI_H/500, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("red", "black")) +
+  scale_color_manual(values=c("red", "black"))
+
+pS1D
+
+spacer = ggplot(data=FigS1A_df, aes(x=time, y=Mean)) +
+  geom_blank() + theme_void()
+
+FigS1 = plot_grid(spacer, pS1A, spacer, pS1B, 
+                  spacer, pS1C, spacer, pS1D,
+                  spacer, spacer, spacer, spacer, 
+                  nrow=3, ncol=4, rel_widths = c(0.05, 1, 0.05, 1), rel_heights = c(1, 1, 0.05)) +
+  # Panel y-axis labels
+  draw_label(expression(paste("Snail density,  ", L^-1, "± 95% CI")), angle=90, x=0.02, y=0.75) +
+  draw_label(expression(paste("Cercariae density,  ", L^-1, "± 95% CI")), angle=90, x=0.52, y=0.75) +
+  draw_label(expression(paste("Resource density, mg C  ", L^-1, "± 95% CI")), angle=90, x=0.02, y=0.25) +
+  draw_label(expression(paste("Miracidia density,  ", L^-1, "± 95% CI")), angle=90, x=0.52, y=0.25) +
+  # X-axis label
+  draw_label("Day", x=0.52, y=0.025) +
+  # Panel labels
+  draw_label("A", x=0.07, y=0.975) +
+  draw_label("B", x=0.59, y=0.975) +
+  draw_label("C", x=0.07, y=0.48) +
+  draw_label("D", x=0.58, y=0.48) 
+  
+
+save_plot("FigS1_IBM.png", FigS1, ncol=2, nrow=2, base_height=4, base_aspect_ratio = 1.1, dpi=600, units="in")
 
 
-# library(ggplot2)
-# p.cercs = ggplot(data=inf.snails, aes(x=t, y=Cercs, group=ID, color=ID)) + geom_line()
-# p.Snails = ggplot(data=pop.stats, aes(x=time, y=Snails)) + geom_line()
-# 
-# snail_avgs = matrix(unlist(lapply(state$Snails, FUN=colMeans)), nrow=length(state$Snails), ncol=dim(state$Snails[[1]])[2], byrow=T)
-# colnames(snail_avgs) = c("ID", "L", "e", "D", "RH", "P", "RP", "DAM", "HAZ", "LG", "DEBmass", "Appmass", "repro", "Cercs", "t")
-# snail_avgs
-# plot(0:n.ticks, snail_avgs[,"e"], typ="l")
+####
+
+
+## Make supplement figure 2 for gradients of miracidia input and resource productivity
+pars["M_in"] = 1
+rep_states_drip1 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["M_in"] = 10
+rep_states_drip10 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["M_in"] = 100
+rep_states_drip100 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["M_in"] = 1000
+rep_states_drip1000 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["M_in"] = 10000
+rep_states_drip10000 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+
+pars["M_in"] = 10
+pars["r"] = 0.05
+rep_states_r1 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["r"] = 0.125
+rep_states_r2 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["r"] = 0.25
+rep_states_r3 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["r"] = 0.5
+rep_states_r4 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+pars["r"] = 1
+rep_states_r5 = replicate(n=50, summarized_DEB_IBM(), simplify=T)
+
+
+
+d1 = summarized_IBM_reps(rep_states_drip1, "Snails")
+d10 = summarized_IBM_reps(rep_states_drip10, "Snails")
+d100 = summarized_IBM_reps(rep_states_drip100, "Snails")
+d1000 = summarized_IBM_reps(rep_states_drip1000, "Snails")
+d10000 = summarized_IBM_reps(rep_states_drip10000, "Snails")
+
+FigS2A_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "M_in" = rep(c(1, 10, 100, 1000, 10000), each=dim(d1)[1]))
+FigS2A_df[, "M_in"] = as.factor(FigS2A_df[, "M_in"])
+
+pS2A = ggplot(data=FigS2A_df, aes(x=time, y=Mean/500, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  labs(fill=expression(paste("Miracidia input rate,  ", d^-1)), colour=expression(paste("Miracidia input rate,  ", d^-1))) +
+  theme(legend.position = c(0.1, 0.825)) + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L/500, ymax=CI_H/500, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2A
+
+
+d1 = summarized_IBM_reps(rep_states_drip1, "Cercariae")
+d10 = summarized_IBM_reps(rep_states_drip10, "Cercariae")
+d100 = summarized_IBM_reps(rep_states_drip100, "Cercariae")
+d1000 = summarized_IBM_reps(rep_states_drip1000, "Cercariae")
+d10000 = summarized_IBM_reps(rep_states_drip10000, "Cercariae")
+
+FigS2C_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "M_in" = rep(c(1, 10, 100, 1000, 10000), each=dim(d1)[1]))
+FigS2C_df [, "M_in"] = as.factor(FigS2C_df [, "M_in"])
+
+pS2C = ggplot(data=FigS2C_df, aes(x=time, y=Mean, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2C
+
+d1 = summarized_IBM_reps(rep_states_drip1, "Food")
+d10 = summarized_IBM_reps(rep_states_drip10, "Food")
+d100 = summarized_IBM_reps(rep_states_drip100, "Food")
+d1000 = summarized_IBM_reps(rep_states_drip1000, "Food")
+d10000 = summarized_IBM_reps(rep_states_drip10000, "Food")
+
+FigS2E_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "M_in" = rep(c(1, 10, 100, 1000, 10000), each=dim(d1)[1]))
+FigS2E_df [, "M_in"] = as.factor(FigS2E_df [, "M_in"])
+
+pS2E = ggplot(data=FigS2E_df, aes(x=time, y=Mean, group=M_in, colour=M_in)) +
+  xlab(NULL) + ylab(NULL) +
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=M_in), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2E
+
+
+d1 = summarized_IBM_reps(rep_states_r1, "Snails")
+d10 = summarized_IBM_reps(rep_states_r2, "Snails")
+d100 = summarized_IBM_reps(rep_states_r3, "Snails")
+d1000 = summarized_IBM_reps(rep_states_r4, "Snails")
+d10000 = summarized_IBM_reps(rep_states_r5, "Snails")
+
+FigS2B_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "r" = rep(c(0.05, 0.125, 0.25, 0.5, 1), each=dim(d1)[1]))
+FigS2B_df[, "r"] = as.factor(FigS2B_df[, "r"])
+
+
+pS2B = ggplot(data=FigS2B_df, aes(x=time, y=Mean/500, group=r, colour=r)) +
+  xlab(NULL) + ylab(NULL) +
+  labs(fill=expression(paste("Resource productivity,  ", d^-1)),
+       colour=expression(paste("Resource productivity,  ", d^-1))) +
+  theme(legend.position = c(0.1, 0.825)) + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L/500, ymax=CI_H/500, colour=NULL, fill=r), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2B
+
+
+d1 = summarized_IBM_reps(rep_states_r1, "Cercariae")
+d10 = summarized_IBM_reps(rep_states_r2, "Cercariae")
+d100 = summarized_IBM_reps(rep_states_r3, "Cercariae")
+d1000 = summarized_IBM_reps(rep_states_r4, "Cercariae")
+d10000 = summarized_IBM_reps(rep_states_r5, "Cercariae")
+
+FigS2D_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "r" = rep(c(0.05, 0.125, 0.25, 0.5, 1), each=dim(d1)[1]))
+FigS2D_df[, "r"] = as.factor(FigS2D_df[, "r"])
+
+pS2D = ggplot(data=FigS2D_df, aes(x=time, y=Mean, group=r, colour=r)) +
+  xlab(NULL) + ylab(NULL) +
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=r), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2D
+
+d1 = summarized_IBM_reps(rep_states_r1, "Food")
+d10 = summarized_IBM_reps(rep_states_r2, "Food")
+d100 = summarized_IBM_reps(rep_states_r3, "Food")
+d1000 = summarized_IBM_reps(rep_states_r4, "Food")
+d10000 = summarized_IBM_reps(rep_states_r5, "Food")
+
+FigS2F_df = data.frame(rbind(d1, d10, d100, d1000, d10000), "r" = rep(c(0.05, 0.125, 0.25, 0.5, 1), each=dim(d1)[1]))
+FigS2F_df[, "r"] = as.factor(FigS2F_df[, "r"])
+
+
+pS2F = ggplot(data=FigS2F_df, aes(x=time, y=Mean, group=r, colour=r)) +
+  xlab(NULL) + ylab(NULL) +
+  theme(legend.position = "None") + 
+  geom_line() + geom_ribbon(aes(ymin=CI_L, ymax=CI_H, colour=NULL, fill=r), alpha=0.2) +
+  scale_fill_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f")) +
+  scale_color_manual(values=c("#2166ac", "black", "#d6604d", "#cb181d", "#67001f"))
+
+pS2F
+
+FigS2 = plot_grid(spacer, pS2A, pS2B, 
+                  spacer, pS2C, pS2D,
+                  spacer, pS2E, pS2F,
+                  spacer, spacer, spacer, 
+                  nrow=4, ncol=3, align="hv", rel_widths = c(0.05, 1, 1), rel_heights = c(1, 1, 1, 0.05)) +
+  # Panel y-axis labels
+  draw_label(expression(paste("Snail density,  ", L^-1, "± 95% CI")), angle=90, x=0.02, y=0.85) +
+  draw_label(expression(paste("Cercariae density,  ", L^-1, "± 95% CI")), angle=90, x=0.02, y=0.52) +
+  draw_label(expression(paste("Resource density, mg C  ", L^-1, "± 95% CI")), angle=90, x=0.02, y=0.2) +
+  # X-axis label
+  draw_label("Day", x=0.52, y=0.025) +
+  # Panel labels
+  draw_label("A", x=0.095, y=0.98) +
+  draw_label("B", x=0.58, y=0.98) +
+  draw_label("C", x=0.095, y=0.65) +
+  draw_label("D", x=0.58, y=0.65) +
+  draw_label("E", x=0.095, y=0.32) +
+  draw_label("F", x=0.58, y=0.32)
+
+save_plot("FigS2_IBM.png", FigS2, ncol=2, nrow=3, base_height=4, base_aspect_ratio = 1.1, dpi=600, units="in")
